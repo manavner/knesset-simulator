@@ -271,6 +271,7 @@ footer a { color: var(--accent); }
         <div class="chips" id="trend-mode">
           <button class="chip-btn" data-mode="seats">מנדטים</button>
           <button class="chip-btn" data-mode="pct">אחוז מהקולות</button>
+          <button class="chip-btn" data-mode="votes">מספר מצביעים</button>
         </div>
       </div>
       <div class="legend" id="trend-legend" aria-label="הצג או הסתר גוש"></div>
@@ -644,11 +645,14 @@ function blocTotals(e) {
 }
 function setRealBloc(e, name, b) { (state.realBloc[e.id] = state.realBloc[e.id] || {})[name] = b; }
 function renderTrend() {
-  const mode = state.trendMode, isSeats = mode === "seats";
+  const mode = state.trendMode, isSeats = mode === "seats", isVotes = mode === "votes";
   const data = CHRONO.map(blocTotals);
   const shown = BLOCS.filter(b => !state.trendHidden.includes(b));
-  const val = (t, b) => isSeats ? t[b].seats : t[b].pct;
-  const lbl = v => isSeats ? String(v) : v.toFixed(1) + "%";
+  const val = (t, b) => isSeats ? t[b].seats : isVotes ? t[b].votes : t[b].pct;
+  const lbl = v => isSeats ? String(v) : isVotes ? (v ? (v / 1e6).toFixed(2) + "M" : "0") : v.toFixed(1) + "%";
+  const tip = v => isVotes ? fmt(v) + " קולות" : lbl(v);
+  const tick = v => isSeats ? String(v) : isVotes ? (v / 1e6) + "M" : v + "%";
+  const step = isVotes ? 500000 : 10;
   el("trend-mode").querySelectorAll("button").forEach(btn => btn.setAttribute("aria-pressed", String(btn.dataset.mode === mode)));
   el("trend-legend").innerHTML = BLOCS.map(b => `<button class="lg-btn" data-bloc="${b}" aria-pressed="${!state.trendHidden.includes(b)}"><i class="sw" style="background:${blocColor(b)}"></i>${esc(state.blocNames[b])}</button>`).join("");
   el("trend-legend").querySelectorAll("button").forEach(btn => btn.addEventListener("click", () => {
@@ -658,13 +662,13 @@ function renderTrend() {
   // chart: x = elections in chronological order (left → right), y = seats or % of valid votes
   const W = 760, H = 330, L = 46, R = 14, T = 24, B = 50, P = 34, n = CHRONO.length;
   const maxV = Math.max(1, ...data.flatMap(t => shown.map(b => val(t, b))));
-  const yMax = isSeats ? Math.max(70, Math.ceil((maxV + 3) / 10) * 10) : Math.ceil((maxV + 2) / 10) * 10;
+  const yMax = isSeats ? Math.max(70, Math.ceil((maxV + 3) / 10) * 10) : Math.ceil(maxV * 1.06 / step) * step;
   const x = i => L + P + i * (W - L - R - 2 * P) / (n - 1);
   const y = v => T + (H - T - B) * (1 - v / yMax);
-  let s = `<svg viewBox="0 0 ${W} ${H}" style="direction:ltr" role="img" aria-label="${isSeats ? "מנדטים" : "אחוז מהקולות"} לכל גוש, ${CHRONO[0].label} עד ${CHRONO[n - 1].label}">`;
-  for (let v = 0; v <= yMax; v += 10) {
+  let s = `<svg viewBox="0 0 ${W} ${H}" style="direction:ltr" role="img" aria-label="${isSeats ? "מנדטים" : isVotes ? "מספר מצביעים" : "אחוז מהקולות"} לכל גוש, ${CHRONO[0].label} עד ${CHRONO[n - 1].label}">`;
+  for (let v = 0; v <= yMax; v += step) {
     s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" style="stroke:var(--line);stroke-width:1"/>`;
-    s += `<text x="${L - 8}" y="${y(v) + 4}" text-anchor="end" style="fill:var(--muted);font:500 11.5px var(--font-body)">${isSeats ? v : v + "%"}</text>`;
+    s += `<text x="${L - 8}" y="${y(v) + 4}" text-anchor="end" style="fill:var(--muted);font:500 11.5px var(--font-body)">${tick(v)}</text>`;
   }
   if (isSeats) {
     s += `<line x1="${L}" x2="${W - R}" y1="${y(61)}" y2="${y(61)}" style="stroke:var(--ink);stroke-width:1.5;stroke-dasharray:5 4;opacity:.7"/>`;
@@ -684,7 +688,7 @@ function renderTrend() {
     col.forEach(p => {
       const below = Math.max(p.py + 18, prev + 13);
       const ly = (p.py - 9 >= prev + 13 && p.py - prevPy >= 26) || below > H - B - 4 ? p.py - 9 : below; prev = ly; prevPy = p.py;
-      s += `<circle cx="${x(i)}" cy="${p.py}" r="4.5" style="fill:${blocColor(p.b)};stroke:var(--surface);stroke-width:1.5"><title>${esc(state.blocNames[p.b])} · ${esc(CHRONO[i].label)}: ${lbl(p.v)}</title></circle>`;
+      s += `<circle cx="${x(i)}" cy="${p.py}" r="4.5" style="fill:${blocColor(p.b)};stroke:var(--surface);stroke-width:1.5"><title>${esc(state.blocNames[p.b])} · ${esc(CHRONO[i].label)}: ${tip(p.v)}</title></circle>`;
       s += `<text x="${x(i)}" y="${ly}" text-anchor="middle" style="fill:${blocColor(p.b)};font:700 12px var(--font-body);paint-order:stroke;stroke:var(--surface);stroke-width:3px">${lbl(p.v)}</text>`;
     });
   });
@@ -692,6 +696,8 @@ function renderTrend() {
   el("trend-chart").innerHTML = s;
   el("trend-note").textContent = isSeats
     ? "מנדטים בפועל לפי תוצאות האמת, מסוכמים לפי שיוך המפלגות לגושים בכל מערכת בחירות."
+    : isVotes
+    ? "מספר הקולות הכשרים שקיבלו מפלגות הגוש (M = מיליון), כולל רשימות שלא עברו את החסימה. רחפו מעל נקודה לראות את המספר המדויק. קולות של רשימות קטנות שמאוחדות ב\"אחרות\" לא משויכים לאף גוש."
     : "אחוז מהקולות הכשרים, כולל רשימות שלא עברו את החסימה. קולות של רשימות קטנות שמאוחדות ב\"אחרות\" לא משויכים לאף גוש.";
   renderMatrix();
 }
