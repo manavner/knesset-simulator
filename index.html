@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="סימולטור בחירות לכנסת: תוצאות אמת 2019–2026, חלוקת מנדטים בשיטת בדר-עופר, סימולציית אחוזים, גושים ובודק קואליציה.">
+<meta name="color-scheme" content="light dark">
+<title>סימולטור הכנסת</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: plenum-style tool — controls & party table on one side, hemicycle + bloc meter on the other; stacks on phones */
+:root {
+  --bg: #F1F3F7;
+  --surface: #FFFFFF;
+  --surface-2: #F7F8FB;
+  --ink: #131B27;
+  --muted: #5A6476;
+  --line: #D8DDE6;
+  --accent: #1E4E8C;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #E2EAF5;
+  --good: #1D7A4E;
+  --good-soft: #DFF2E8;
+  --warn: #A85A08;
+  --warn-soft: #FBEEDB;
+  --bad: #B42318;
+  --b-R: #2C5AA6;
+  --b-L: #D2781C;
+  --b-A: #23876A;
+  --b-N: #8B95A7;
+  --font-display: "Frank Ruhl Libre", "David", "Times New Roman", serif;
+  --font-body: "IBM Plex Sans Hebrew", "Arial Hebrew", "Segoe UI", Arial, sans-serif;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E131A; --surface: #161D27; --surface-2: #1B2330; --ink: #E7ECF3; --muted: #9AA5B6; --line: #2A3444;
+    --accent: #86ACE8; --accent-ink: #0E131A; --accent-soft: #1C2A3E; --good: #52C690; --good-soft: #15302A;
+    --warn: #F1A853; --warn-soft: #3A2B17; --bad: #F2766C;
+    --b-R: #5E8CDD; --b-L: #EE9E47; --b-A: #4DBC95; --b-N: #7E899C; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E131A; --surface: #161D27; --surface-2: #1B2330; --ink: #E7ECF3; --muted: #9AA5B6; --line: #2A3444;
+  --accent: #86ACE8; --accent-ink: #0E131A; --accent-soft: #1C2A3E; --good: #52C690; --good-soft: #15302A;
+  --warn: #F1A853; --warn-soft: #3A2B17; --bad: #F2766C;
+  --b-R: #5E8CDD; --b-L: #EE9E47; --b-A: #4DBC95; --b-N: #7E899C; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+.wrap { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+h1 { font-family: var(--font-display); font-weight: 900; font-size: clamp(28px, 4.2vw, 42px); line-height: 1.05; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.sub { color: var(--muted); margin: 6px 0 0; max-width: 62ch; }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: 21px; margin: 0; text-wrap: balance; }
+h3 { font-size: 13px; font-weight: 600; letter-spacing: .04em; color: var(--muted); margin: 0; }
+.tabs { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px; gap: 4px; }
+.tabs button { border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 600; padding: 8px 18px; border-radius: 999px; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+button, select, input { font: inherit; color: inherit; }
+button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 7px 14px; border-radius: 8px; cursor: pointer; font-weight: 500; white-space: nowrap; }
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.primary:hover { color: var(--accent-ink); filter: brightness(1.08); }
+.btn.small { padding: 4px 10px; font-size: 13px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-btn { border: 1px solid var(--line); background: var(--surface); padding: 6px 14px; border-radius: 999px; cursor: pointer; font-weight: 500; }
+.chip-btn[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 640px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat { background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.stat .k { font-size: 12px; color: var(--muted); }
+.stat .v { font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.note { font-size: 13px; color: var(--muted); }
+.note.warn { color: var(--warn); background: var(--warn-soft); padding: 8px 12px; border-radius: 8px; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; vertical-align: middle; }
+th { font-size: 12px; font-weight: 600; color: var(--muted); background: var(--surface-2); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+tr.below td { color: var(--muted); }
+td.num { text-align: left; direction: ltr; }
+th.num { text-align: left; }
+.seats { font-weight: 700; font-size: 16px; }
+.pname { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.sw { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+.pill { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+.pill.out { background: var(--warn-soft); color: var(--warn); }
+.pill.in { background: var(--good-soft); color: var(--good); }
+.delta.up { color: var(--good); } .delta.down { color: var(--bad); }
+select.bloc { border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; background: var(--surface); max-width: 140px; }
+.bloc-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-inline-end: 6px; }
+.partner { font-size: 12px; color: var(--muted); }
+input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 12px; color: var(--muted); font-weight: 500; }
+.field input, .field select { border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 6px 9px; }
+.field input[type="number"] { width: 130px; }
+.simrow input.name { border: 1px solid transparent; background: transparent; border-radius: 6px; padding: 4px 6px; font-weight: 600; width: 170px; }
+.simrow input.name:hover, .simrow input.name:focus { border-color: var(--line); background: var(--surface); }
+.pct-cell { display: flex; align-items: center; gap: 8px; }
+.pct-cell input[type="number"] { width: 90px; border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; text-align: left; direction: ltr; background: var(--surface); }
+.pct-cell input[type="range"] { width: 120px; accent-color: var(--accent); }
+.del { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 6px; border-radius: 6px; }
+.del:hover { color: var(--bad); background: var(--warn-soft); }
+tr.remainder td { background: var(--surface-2); color: var(--muted); font-style: italic; }
+.hemi svg { width: 100%; height: auto; display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12.5px; }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.blocrows { display: flex; flex-direction: column; gap: 10px; }
+.blocrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; }
+.blocrow .lbl { font-size: 13.5px; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.blocrow .val { font-weight: 700; font-variant-numeric: tabular-nums; }
+.bar { grid-column: 1 / -1; position: relative; height: 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; overflow: visible; }
+.bar .fill { position: absolute; top: 0; bottom: 0; right: 0; border-radius: 999px; transition: width .25s; }
+.bar .mark { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink); opacity: .7; }
+.blocrow .acts { grid-column: 1 / -1; display: flex; justify-content: flex-start; }
+.link { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 0; font-size: 12.5px; text-decoration: underline; text-underline-offset: 2px; }
+.coal { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: var(--surface-2); display: flex; flex-direction: column; gap: 6px; }
+.coal .big { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.verdict { font-weight: 700; }
+.verdict.ok { color: var(--good); } .verdict.no { color: var(--warn); }
+details { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+details > summary { cursor: pointer; padding: 12px 16px; font-weight: 600; }
+details .inner { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+.blocnames { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.blocnames .field input { width: 100%; }
+.method ol { margin: 0; padding-inline-start: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 75ch; }
+footer { font-size: 12.5px; color: var(--muted); }
+footer a { color: var(--accent); }
+.toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.row-between { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 12px; }
+@media (prefers-reduced-motion: reduce) { .bar .fill { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap" dir="rtl">
+  <header class="top">
+    <div>
+      <h1>סימולטור הכנסת</h1>
+      <p class="sub">תוצאות האמת של מערכות הבחירות מ-2019 עד 2026, וחלוקת 120 המנדטים בשיטת בדר-עופר עם אחוז חסימה והסכמי עודפים. בלשונית הסימולציה אפשר לקבוע לכל מפלגה אחוז מהקולות ולבדוק את הגושים.</p>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="תצוגה">
+      <button id="tab-results" role="tab" aria-selected="true" data-tab="results">תוצאות אמת</button>
+      <button id="tab-sim" role="tab" aria-selected="false" data-tab="sim">סימולציה</button>
+    </nav>
+  </header>
+
+  <details id="blocs-panel">
+    <summary>שמות הגושים</summary>
+    <div class="inner">
+      <p class="note">שיוך ברירת המחדל לגושים לפי המקובל בתקשורת בכל מערכת בחירות. אפשר לשנות את השיוך של כל מפלגה בטבלה, ואת שמות הגושים כאן.</p>
+      <div class="blocnames" id="blocnames"></div>
+    </div>
+  </details>
+
+  <!-- RESULTS -->
+  <section id="view-results" class="grid" role="tabpanel" aria-labelledby="tab-results">
+    <div class="panel">
+      <div class="chips" id="election-chips" aria-label="בחירת מערכת בחירות"></div>
+      <div class="row-between">
+        <h2 id="res-title"></h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <label class="toggle"><input type="checkbox" id="res-nosurplus"> הצג חישוב בלי הסכמי עודפים</label>
+          <button class="btn small" id="res-to-sim">העבר לסימולציה ←</button>
+        </div>
+      </div>
+      <p class="note" id="res-note" hidden></p>
+      <div class="stats" id="res-stats"></div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr>
+            <th>רשימה</th><th class="num">קולות</th><th class="num">אחוז</th><th>מנדטים</th>
+            <th id="res-ns-h" hidden>בלי עודפים</th><th>גוש</th><th>הסכם עודפים</th><th>קואליציה</th>
+          </tr></thead>
+          <tbody id="res-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <aside class="panel" aria-label="הרכב הכנסת">
+      <div class="row-between"><h2>הרכב המליאה</h2>
+        <label class="toggle">צבע לפי
+          <select id="res-colorby" class="bloc"><option value="party">מפלגה</option><option value="bloc">גוש</option></select>
+        </label>
+      </div>
+      <div class="hemi" id="res-hemi"></div>
+      <div class="legend" id="res-legend"></div>
+      <h3>גושים מול 61</h3>
+      <div class="blocrows" id="res-blocs"></div>
+      <div class="coal" id="res-coal"></div>
+    </aside>
+  </section>
+
+  <!-- SIMULATION -->
+  <section id="view-sim" class="grid" role="tabpanel" aria-labelledby="tab-sim" hidden>
+    <div class="panel">
+      <div class="controls">
+        <div class="field">
+          <label for="sim-base">נקודת פתיחה</label>
+          <select id="sim-base"></select>
+        </div>
+        <button class="btn" id="sim-load">טען</button>
+        <div class="field">
+          <label for="sim-total">קולות כשרים (סה״כ)</label>
+          <input type="number" id="sim-total" min="100000" step="10000">
+        </div>
+        <div class="field">
+          <label for="sim-thr">אחוז חסימה</label>
+          <input type="number" id="sim-thr" min="0" max="20" step="0.05" style="width:90px">
+        </div>
+      </div>
+      <div class="controls">
+        <button class="btn" id="sim-add">+ מפלגה חדשה</button>
+        <button class="btn" id="sim-norm">נרמל ל-100%</button>
+        <button class="btn" id="sim-shake">תרחיש אקראי ±15%</button>
+      </div>
+      <p class="note" id="sim-msg"></p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr>
+            <th>רשימה</th><th>אחוז מהקולות</th><th class="num">קולות</th><th>מנדטים</th><th id="sim-delta-h">שינוי</th>
+            <th>גוש</th><th>הסכם עודפים</th><th>קואליציה</th><th><span hidden>מחק</span></th>
+          </tr></thead>
+          <tbody id="sim-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <aside class="panel" aria-label="תוצאת הסימולציה">
+      <div class="row-between"><h2>הכנסת לפי הסימולציה</h2>
+        <label class="toggle">צבע לפי
+          <select id="sim-colorby" class="bloc"><option value="party">מפלגה</option><option value="bloc">גוש</option></select>
+        </label>
+      </div>
+      <div class="hemi" id="sim-hemi"></div>
+      <div class="legend" id="sim-legend"></div>
+      <h3>גושים מול 61</h3>
+      <div class="blocrows" id="sim-blocs"></div>
+      <div class="coal" id="sim-coal"></div>
+    </aside>
+  </section>
+
+  <details class="method">
+    <summary>איך מחושבים המנדטים</summary>
+    <div class="inner">
+      <ol>
+        <li>רשימה שקיבלה פחות מאחוז החסימה (3.25% מהקולות הכשרים) לא נכנסת לכנסת, והקולות שלה נשרפים.</li>
+        <li>מחלקים את סך הקולות של הרשימות שעברו ב-120 ומקבלים את "המודד" – מחיר מנדט אחד. כל רשימה מקבלת מספר שלם של מנדטים לפי קולותיה חלקי המודד.</li>
+        <li>המנדטים שנשארו מחולקים אחד-אחד: בכל סבב מקבלת מנדט הרשימה שבה מספר הקולות חלקי (מנדטים + 1) הוא הגבוה ביותר. זו שיטת בדר-עופר.</li>
+        <li>שתי רשימות שחתמו על הסכם עודפים נחשבות בשלב הזה כרשימה אחת. המנדטים שזכו בהם יחד מתחלקים ביניהן באותה שיטה.</li>
+      </ol>
+      <p class="note">החישוב בעמוד הזה משחזר בדיוק את חלוקת המנדטים הרשמית בכל שש מערכות הבחירות שבנתונים.</p>
+    </div>
+  </details>
+
+  <footer>
+    מקורות: ועדת הבחירות המרכזית (תוצאות ארציות), דרך ויקיפדיה לכנסות 21–25 ודרך קובץ התוצאות של הוועדה לכנסת ה-26. מוצגות רשימות עם יותר מ-9,000 קולות; שאר הרשימות מאוחדות בשורה "אחרות". תוצאות 2026 הן ספירה סופית שטרם אושרה רשמית.
+  </footer>
+</div>
+
+<script>
+// ---------- DATA ----------
+const ELECTIONS = [
+  { id: "2026", label: "2026", long: "הכנסת ה-26 · 27.10.2026", valid: 5690685,
+    note: "ספירה סופית של ועדת הבחירות, כולל המעטפות הכפולות. האישור הרשמי של התוצאות צפוי ב-4.11.2026.",
+    agreements: [["ביחד (בנט)", "ישראל ביתנו"], ["ישר! (איזנקוט)", "הדמוקרטים"], ["הרשימה המשותפת", "רע\"ם"], ["הליכוד", "הציונות הדתית-זהות"], ["ש\"ס", "יהדות התורה"]],
+    parties: [["הליכוד",1167458,27,"R"],["ישר! (איזנקוט)",913502,21,"L"],["ביחד (בנט)",531476,12,"L"],["הרשימה המשותפת",500147,11,"A"],["הדמוקרטים",366352,8,"L"],["ישראל ביתנו",337413,7,"L"],["רע\"ם",337253,8,"A"],["עוצמה יהודית",326624,7,"R"],["יהדות התורה",312604,7,"R"],["ש\"ס",299506,6,"R"],["הציונות הדתית-זהות",290451,6,"R"],["המילואימניקים והכלכלית",154995,0,"N"],["עמך ישראל",95663,0,"R"],["צבע שחור",11274,0,"R"],["הציבור החרדי",10594,0,"R"],["נעם",9923,0,"R"]] },
+  { id: "2022", label: "2022", long: "הכנסת ה-25 · 1.11.2022", valid: 4764742,
+    agreements: [["העבודה","מרצ"],["הליכוד","הציונות הדתית-עוצמה יהודית"],["המחנה הממלכתי","יש עתיד"],["ש\"ס","יהדות התורה"]],
+    parties: [["הליכוד",1115336,32,"R"],["יש עתיד",847435,24,"L"],["הציונות הדתית-עוצמה יהודית",516470,14,"R"],["המחנה הממלכתי",432482,12,"L"],["ש\"ס",392964,11,"R"],["יהדות התורה",280194,7,"R"],["ישראל ביתנו",213687,6,"L"],["רע\"ם",194047,5,"A"],["חד\"ש-תע\"ל",178735,5,"A"],["העבודה",175992,4,"L"],["מרצ",150793,0,"L"],["בל\"ד",138617,0,"A"],["הבית היהודי",56775,0,"R"],["חופש כלכלי",15801,0,"N"],["באומץ בשבילך",14694,0,"N"],["הכלכלית החדשה",13920,0,"N"]] },
+  { id: "2021", label: "2021", long: "הכנסת ה-24 · 23.3.2021", valid: 4410052,
+    agreements: [["ימינה","תקווה חדשה"],["יש עתיד","ישראל ביתנו"],["כחול לבן","הכלכלית החדשה"],["הליכוד","הציונות הדתית"],["יהדות התורה","ש\"ס"],["העבודה","מרצ"]],
+    parties: [["הליכוד",1066892,30,"R"],["יש עתיד",614112,17,"L"],["ש\"ס",316008,9,"R"],["כחול לבן",292257,8,"L"],["ימינה",273836,7,"N"],["העבודה",268767,7,"L"],["יהדות התורה",248391,7,"R"],["ישראל ביתנו",248370,7,"L"],["הציונות הדתית",225641,6,"R"],["הרשימה המשותפת",212583,6,"A"],["תקווה חדשה",209161,6,"L"],["מרצ",202218,6,"L"],["רע\"ם",167064,4,"A"],["הכלכלית החדשה",34883,0,"N"],["רפא",17346,0,"N"]] },
+  { id: "2020", label: "2020", long: "הכנסת ה-23 · 2.3.2020", valid: 4590062,
+    agreements: [["הליכוד","ימינה"],["כחול לבן","העבודה-גשר-מרצ"],["ש\"ס","יהדות התורה"]],
+    parties: [["הליכוד",1352449,36,"R"],["כחול לבן",1220381,33,"L"],["הרשימה המשותפת",581507,15,"A"],["ש\"ס",352853,9,"R"],["יהדות התורה",274437,7,"R"],["העבודה-גשר-מרצ",267480,7,"L"],["ישראל ביתנו",263365,7,"L"],["ימינה",240689,6,"R"],["עוצמה יהודית",19402,0,"R"]] },
+  { id: "2019b", label: "ספטמבר 2019", long: "הכנסת ה-22 · 17.9.2019", valid: 4436806,
+    agreements: [["הליכוד","ימינה"],["העבודה-גשר","המחנה הדמוקרטי"],["ש\"ס","יהדות התורה"],["ישראל ביתנו","כחול לבן"]],
+    parties: [["כחול לבן",1151214,33,"L"],["הליכוד",1113617,32,"R"],["הרשימה המשותפת",470211,13,"A"],["ש\"ס",330199,9,"R"],["ישראל ביתנו",310154,8,"N"],["יהדות התורה",268775,7,"R"],["ימינה",260655,7,"R"],["העבודה-גשר",212782,6,"L"],["המחנה הדמוקרטי",192495,5,"L"],["עוצמה יהודית",83609,0,"R"],["צומת",14805,0,"R"]] },
+  { id: "2019a", label: "אפריל 2019", long: "הכנסת ה-21 · 9.4.2019", valid: 4309270,
+    agreements: [["הליכוד","איחוד מפלגות הימין"],["העבודה","מרצ"],["ש\"ס","יהדות התורה"],["רע\"ם-בל\"ד","חד\"ש-תע\"ל"]],
+    parties: [["הליכוד",1140370,35,"R"],["כחול לבן",1125881,35,"L"],["ש\"ס",258275,8,"R"],["יהדות התורה",249049,8,"R"],["חד\"ש-תע\"ל",193442,6,"A"],["העבודה",190870,6,"L"],["ישראל ביתנו",173004,5,"R"],["איחוד מפלגות הימין",159468,5,"R"],["מרצ",156473,4,"L"],["כולנו",152756,4,"R"],["רע\"ם-בל\"ד",143666,4,"A"],["הימין החדש",138598,0,"R"],["זהות",118031,0,"R"],["גשר",74701,0,"N"]] }
+];
+const BLOCS = ["R", "L", "A", "N"];
+const DEFAULT_BLOC_NAMES = { R: "גוש נתניהו (ימין-דתיים)", L: "גוש מרכז-שמאל / אופוזיציה", A: "מפלגות ערביות", N: "ללא שיוך" };
+const FILL_ORDER = ["A", "L", "N", "R"]; // left → right in the hemicycle
+const PALETTE = ["#2F62B5","#E07B24","#2A9474","#8E4FB8","#C23B3B","#1599B0","#B08A10","#5E6E82","#D66A9C","#3A9F4A","#7A5230","#4C4FD1","#C25E00","#2B7A8C","#9C3F6E","#6D8A1E"];
+
+// ---------- SEAT ALLOCATION (Bader-Ofer + surplus agreements) ----------
+function allocate(list, thrPct, total) {
+  const res = {}; list.forEach(p => res[p.id] = 0);
+  const thr = total * thrPct / 100;
+  const q = list.filter(p => p.votes > 0 && p.votes >= thr);
+  if (!q.length) return { seats: res, thr, passed: new Set() };
+  const quota = q.reduce((s, p) => s + p.votes, 0) / 120;
+  const byId = Object.fromEntries(list.map(p => [p.id, p]));
+  const qIds = new Set(q.map(p => p.id)); const used = new Set(); const units = [];
+  q.forEach(p => {
+    if (used.has(p.id)) return;
+    const mate = p.partner && qIds.has(p.partner) && !used.has(p.partner) && byId[p.partner].partner === p.id ? byId[p.partner] : null;
+    const members = mate ? [p, mate] : [p];
+    members.forEach(m => used.add(m.id));
+    units.push({ members, votes: members.reduce((s, m) => s + m.votes, 0), seats: members.reduce((s, m) => s + Math.floor(m.votes / quota), 0) });
+  });
+  let left = 120 - units.reduce((s, u) => s + u.seats, 0);
+  while (left > 0) {
+    let best = units[0], bv = -1;
+    units.forEach(u => { const v = u.votes / (u.seats + 1); if (v > bv) { bv = v; best = u; } });
+    best.seats++; left--;
+  }
+  units.forEach(u => {
+    if (u.members.length === 1) { res[u.members[0].id] = u.seats; return; }
+    const s = [0, 0];
+    for (let k = 0; k < u.seats; k++) { const i = u.members[0].votes / (s[0] + 1) >= u.members[1].votes / (s[1] + 1) ? 0 : 1; s[i]++; }
+    res[u.members[0].id] = s[0]; res[u.members[1].id] = s[1];
+  });
+  return { seats: res, thr, passed: qIds };
+}
+
+// ---------- STATE ----------
+const LS = "knesset-sim-v1";
+function load() { try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch (e) { return {}; } }
+function save() { try { localStorage.setItem(LS, JSON.stringify(state)); } catch (e) {} }
+const saved = load();
+const state = {
+  blocNames: Object.assign({}, DEFAULT_BLOC_NAMES, saved.blocNames || {}),
+  electionId: saved.electionId || "2026",
+  realBloc: saved.realBloc || {},
+  realCoal: saved.realCoal || {},
+  colorRes: saved.colorRes || "party",
+  colorSim: saved.colorSim || "party",
+  sim: saved.sim || null
+};
+const fmt = n => Math.round(n).toLocaleString("he-IL");
+const fmtPct = n => (Math.round(n * 100) / 100).toFixed(2) + "%";
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]));
+const blocColor = b => `var(--b-${b})`;
+const el = id => document.getElementById(id);
+
+function electionParties(e) {
+  const partner = {}; e.agreements.forEach(([a, b]) => { partner[a] = b; partner[b] = a; });
+  const blocOverride = state.realBloc[e.id] || {};
+  return e.parties.map(([name, votes, seats, bloc], i) => ({
+    id: name, name, votes, official: seats, bloc: blocOverride[name] || bloc, partner: partner[name] || null, color: PALETTE[i % PALETTE.length]
+  }));
+}
+function defaultCoal(parties, seatsOf) { return parties.filter(p => p.bloc === "R" && seatsOf(p) > 0).map(p => p.id); }
+
+// ---------- SHARED RENDERERS ----------
+function hemicycle(container, items, colorBy, coalSet) {
+  // items: [{id,name,seats,bloc,color}]
+  const rows = 8, r0 = 0.40, r1 = 1.0, radii = [];
+  for (let i = 0; i < rows; i++) radii.push(r0 + i * (r1 - r0) / (rows - 1));
+  const sumR = radii.reduce((a, b) => a + b, 0);
+  const counts = radii.map(r => Math.round(120 * r / sumR));
+  counts[rows - 1] += 120 - counts.reduce((a, b) => a + b, 0);
+  const pts = [];
+  radii.forEach((r, i) => { const n = counts[i]; for (let j = 0; j < n; j++) { const t = Math.PI * (1 - j / (n - 1)); pts.push({ t, r }); } });
+  pts.sort((a, b) => b.t - a.t || a.r - b.r);
+  const order = [];
+  FILL_ORDER.forEach(b => items.filter(p => p.bloc === b && p.seats > 0).sort((a, c) => c.seats - a.seats).forEach(p => order.push(p)));
+  const W = 460, H = 250, cx = W / 2, cy = 236, S = 205;
+  let html = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="מליאת הכנסת: 120 מושבים">`;
+  let k = 0;
+  order.forEach(p => {
+    const fill = colorBy === "bloc" ? blocColor(p.bloc) : p.color;
+    const dim = coalSet && coalSet.size && !coalSet.has(p.id) ? 0.35 : 1;
+    for (let s = 0; s < p.seats && k < pts.length; s++, k++) {
+      const { t, r } = pts[k];
+      html += `<circle cx="${(cx + S * r * Math.cos(t)).toFixed(1)}" cy="${(cy - S * r * Math.sin(t)).toFixed(1)}" r="7.2" style="fill:${fill};opacity:${dim}"><title>${esc(p.name)}: ${p.seats}</title></circle>`;
+    }
+  });
+  for (; k < pts.length; k++) { const { t, r } = pts[k]; html += `<circle cx="${(cx + S * r * Math.cos(t)).toFixed(1)}" cy="${(cy - S * r * Math.sin(t)).toFixed(1)}" r="7.2" style="fill:var(--line)"/>`; }
+  const coalSeats = items.filter(p => coalSet && coalSet.has(p.id)).reduce((s, p) => s + p.seats, 0);
+  html += `<text x="${cx}" y="${cy - 34}" text-anchor="middle" style="fill:var(--ink);font:700 34px var(--font-display)">${coalSet && coalSet.size ? coalSeats : 120}</text>`;
+  html += `<text x="${cx}" y="${cy - 10}" text-anchor="middle" style="fill:var(--muted);font:500 12.5px var(--font-body)">${coalSet && coalSet.size ? "מנדטים לקואליציה" : "מנדטים"}</text>`;
+  html += `</svg>`;
+  container.innerHTML = html;
+}
+function legend(container, items, colorBy) {
+  if (colorBy === "bloc") {
+    container.innerHTML = BLOCS.map(b => `<span><i class="sw" style="background:${blocColor(b)}"></i>${esc(state.blocNames[b])}</span>`).join("");
+  } else {
+    container.innerHTML = items.filter(p => p.seats > 0).sort((a, b) => b.seats - a.seats)
+      .map(p => `<span><i class="sw" style="background:${p.color}"></i>${esc(p.name)} ${p.seats}</span>`).join("");
+  }
+}
+function blocBars(container, items, onSetCoal) {
+  const tot = {}; BLOCS.forEach(b => tot[b] = 0); items.forEach(p => tot[p.bloc] += p.seats);
+  container.innerHTML = BLOCS.filter(b => b !== "N" || tot.N > 0).map(b => {
+    const v = tot[b];
+    return `<div class="blocrow"><div class="lbl"><span class="bloc-dot" style="background:${blocColor(b)}"></span>${esc(state.blocNames[b])}</div>
+      <div class="val">${v}</div>
+      <div class="bar"><div class="fill" style="width:${v / 120 * 100}%;background:${blocColor(b)}"></div><div class="mark" style="right:${61 / 120 * 100}%" title="61"></div></div>
+      <div class="acts"><button class="link" data-setcoal="${b}">הגדר כקואליציה</button></div></div>`;
+  }).join("");
+  container.querySelectorAll("[data-setcoal]").forEach(btn => btn.addEventListener("click", () => onSetCoal(btn.dataset.setcoal)));
+}
+function coalBox(container, items, coalSet, onClear) {
+  const sel = items.filter(p => coalSet.has(p.id) && p.seats > 0);
+  const seats = sel.reduce((s, p) => s + p.seats, 0);
+  const ok = seats >= 61;
+  container.innerHTML = `<div class="row-between"><h3>בודק קואליציה</h3>${sel.length ? `<button class="link" id="${container.id}-clear">נקה</button>` : ""}</div>
+    <div><span class="big">${seats}</span> <span class="note">/ 120</span> &nbsp; <span class="verdict ${ok ? "ok" : "no"}">${ok ? "יש רוב (" + seats + "≥61)" : sel.length ? "חסרים " + (61 - seats) + " לרוב" : "סמנו מפלגות בעמודת הקואליציה"}</span></div>
+    <div class="note">${sel.length ? sel.map(p => esc(p.name) + " " + p.seats).join(" · ") : ""}</div>`;
+  const c = el(container.id + "-clear"); if (c) c.addEventListener("click", onClear);
+}
+function blocSelect(id, value) {
+  return `<select class="bloc" id="${id}" aria-label="גוש">${BLOCS.map(b => `<option value="${b}"${b === value ? " selected" : ""}>${esc(state.blocNames[b])}</option>`).join("")}</select>`;
+}
+
+// ---------- RESULTS VIEW ----------
+let resParties = [];
+function renderChips() {
+  el("election-chips").innerHTML = ELECTIONS.map(e => `<button class="chip-btn" data-eid="${e.id}" aria-pressed="${e.id === state.electionId}">${e.label}</button>`).join("");
+  el("election-chips").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { state.electionId = b.dataset.eid; save(); renderChips(); renderResults(); }));
+}
+function renderResults() {
+  const e = ELECTIONS.find(x => x.id === state.electionId);
+  resParties = electionParties(e);
+  const listed = resParties.reduce((s, p) => s + p.votes, 0);
+  const others = e.valid - listed;
+  const ns = allocate(resParties.map(p => ({ ...p, partner: null })), 3.25, e.valid).seats;
+  const showNs = el("res-nosurplus").checked;
+  el("res-ns-h").hidden = !showNs;
+  el("res-title").textContent = e.long;
+  el("res-note").hidden = !e.note; el("res-note").textContent = e.note || ""; el("res-note").className = "note warn";
+  const thr = e.valid * 0.0325;
+  const passed = resParties.filter(p => p.official > 0);
+  const wasted = resParties.filter(p => p.official === 0).reduce((s, p) => s + p.votes, 0) + others;
+  const quota = passed.reduce((s, p) => s + p.votes, 0) / 120;
+  el("res-stats").innerHTML = [
+    ["קולות כשרים", fmt(e.valid)], ["אחוז החסימה (3.25%)", fmt(thr) + " קולות"],
+    ["מחיר מנדט (מודד)", "≈ " + fmt(quota)], ["קולות שנשרפו", fmt(wasted) + " (" + fmtPct(wasted / e.valid * 100) + ")"]
+  ].map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+  if (!state.realCoal[e.id]) state.realCoal[e.id] = defaultCoal(resParties, p => p.official);
+  const coal = new Set(state.realCoal[e.id]);
+  el("res-body").innerHTML = resParties.map((p, i) => `
+    <tr class="${p.official ? "" : "below"}">
+      <td><div class="pname"><i class="sw" style="background:${p.color}"></i>${esc(p.name)}</div></td>
+      <td class="num">${fmt(p.votes)}</td>
+      <td class="num">${fmtPct(p.votes / e.valid * 100)}</td>
+      <td>${p.official ? `<span class="seats">${p.official}</span>` : `<span class="pill out">מתחת לחסימה</span>`}</td>
+      <td ${showNs ? "" : "hidden"}>${p.official ? `${ns[p.id]}${ns[p.id] !== p.official ? ` <span class="delta ${ns[p.id] > p.official ? "up" : "down"}">(${ns[p.id] > p.official ? "+" : ""}${ns[p.id] - p.official})</span>` : ""}` : "—"}</td>
+      <td>${blocSelect("res-bloc-" + i, p.bloc)}</td>
+      <td class="partner">${p.partner ? esc(p.partner) : "—"}</td>
+      <td>${p.official ? `<input type="checkbox" id="res-coal-${i}" ${coal.has(p.id) ? "checked" : ""} aria-label="${esc(p.name)} בקואליציה">` : ""}</td>
+    </tr>`).join("") + (others > 0 ? `<tr class="below"><td>אחרות (רשימות קטנות)</td><td class="num">${fmt(others)}</td><td class="num">${fmtPct(others / e.valid * 100)}</td><td>—</td><td ${showNs ? "" : "hidden"}></td><td></td><td></td><td></td></tr>` : "");
+  resParties.forEach((p, i) => {
+    el("res-bloc-" + i).addEventListener("change", ev => {
+      (state.realBloc[e.id] = state.realBloc[e.id] || {})[p.name] = ev.target.value; p.bloc = ev.target.value; save(); renderResultsSide();
+    });
+    const cb = el("res-coal-" + i);
+    if (cb) cb.addEventListener("change", ev => {
+      const s = new Set(state.realCoal[e.id]); ev.target.checked ? s.add(p.id) : s.delete(p.id); state.realCoal[e.id] = [...s]; save(); renderResultsSide();
+    });
+  });
+  renderResultsSide();
+}
+function renderResultsSide() {
+  const e = ELECTIONS.find(x => x.id === state.electionId);
+  const items = resParties.map(p => ({ ...p, seats: p.official }));
+  const coal = new Set(state.realCoal[e.id] || []);
+  el("res-colorby").value = state.colorRes;
+  hemicycle(el("res-hemi"), items, state.colorRes, coal);
+  legend(el("res-legend"), items, state.colorRes);
+  blocBars(el("res-blocs"), items, b => { state.realCoal[e.id] = items.filter(p => p.bloc === b && p.seats > 0).map(p => p.id); save(); renderResults(); });
+  coalBox(el("res-coal"), items, coal, () => { state.realCoal[e.id] = []; save(); renderResults(); });
+}
+
+// ---------- SIMULATION VIEW ----------
+let uid = 1;
+function simFromElection(eid) {
+  const e = ELECTIONS.find(x => x.id === eid);
+  const ps = electionParties(e);
+  const idOf = {}; ps.forEach(p => idOf[p.name] = "p" + (uid++));
+  const parties = ps.map(p => ({ id: idOf[p.name], name: p.name, pct: Math.round(p.votes / e.valid * 1e6) / 1e4, bloc: p.bloc, partner: p.partner ? idOf[p.partner] : null, color: p.color }));
+  const coal = parties.filter(p => p.bloc === "R").map(p => p.id);
+  return { baseId: eid, total: e.valid, threshold: 3.25, parties, coal };
+}
+function simBlank() {
+  const names = [["מפלגה א", 30, "R"], ["מפלגה ב", 25, "L"], ["מפלגה ג", 15, "L"], ["מפלגה ד", 12, "R"], ["מפלגה ה", 10, "A"], ["מפלגה ו", 5, "N"], ["מפלגה ז", 3, "N"]];
+  const parties = names.map(([n, pct, b], i) => ({ id: "p" + (uid++), name: n, pct, bloc: b, partner: null, color: PALETTE[i] }));
+  return { baseId: "blank", total: 5700000, threshold: 3.25, parties, coal: [] };
+}
+if (!state.sim) state.sim = simFromElection("2026");
+state.sim.parties.forEach(p => { const n = parseInt(String(p.id).slice(1)); if (n >= uid) uid = n + 1; });
+
+function simCompute() {
+  const S = state.sim;
+  const sum = S.parties.reduce((s, p) => s + (+p.pct || 0), 0);
+  const effTotal = sum > 100 ? S.total * sum / 100 : S.total;
+  const list = S.parties.map(p => ({ id: p.id, votes: (+p.pct || 0) / 100 * S.total, partner: p.partner }));
+  const r = allocate(list, +S.threshold || 0, effTotal);
+  return { ...r, sum };
+}
+function baseSeats() {
+  const S = state.sim; if (S.baseId === "blank") return null;
+  const e = ELECTIONS.find(x => x.id === S.baseId); if (!e) return null;
+  const m = {}; e.parties.forEach(([n, , s]) => m[n] = s); return m;
+}
+function renderSimControls() {
+  const S = state.sim;
+  el("sim-base").innerHTML = ELECTIONS.map(e => `<option value="${e.id}">תוצאות ${e.label}</option>`).join("") + `<option value="blank">דף ריק (7 מפלגות לדוגמה)</option>`;
+  el("sim-base").value = S.baseId;
+  el("sim-total").value = Math.round(S.total);
+  el("sim-thr").value = S.threshold;
+  el("sim-delta-h").textContent = S.baseId === "blank" ? "שינוי" : "שינוי מול " + ELECTIONS.find(e => e.id === S.baseId).label;
+}
+function partnerOptions(p) {
+  return `<option value="">—</option>` + state.sim.parties.filter(o => o.id !== p.id).map(o => `<option value="${o.id}"${p.partner === o.id ? " selected" : ""}>${esc(o.name)}</option>`).join("");
+}
+function renderSimTable() {
+  const S = state.sim;
+  el("sim-body").innerHTML = S.parties.map(p => `
+    <tr class="simrow" data-id="${p.id}">
+      <td><div class="pname"><i class="sw" style="background:${p.color}"></i><input class="name" id="sim-name-${p.id}" value="${esc(p.name)}" aria-label="שם הרשימה"></div></td>
+      <td><div class="pct-cell"><input type="number" id="sim-pct-${p.id}" min="0" max="100" step="0.01" value="${p.pct}" aria-label="אחוז ל${esc(p.name)}"><input type="range" id="sim-rng-${p.id}" min="0" max="40" step="0.1" value="${Math.min(40, p.pct)}" aria-label="סרגל אחוז ל${esc(p.name)}"></div></td>
+      <td class="num" data-out="votes"></td>
+      <td data-out="seats"></td>
+      <td data-out="delta"></td>
+      <td>${blocSelect("sim-bloc-" + p.id, p.bloc)}</td>
+      <td><select class="bloc" id="sim-partner-${p.id}" aria-label="הסכם עודפים">${partnerOptions(p)}</select></td>
+      <td><input type="checkbox" id="sim-coal-${p.id}" ${S.coal.includes(p.id) ? "checked" : ""} aria-label="בקואליציה"></td>
+      <td><button class="del" data-del="${p.id}" aria-label="מחק את ${esc(p.name)}" title="מחק">×</button></td>
+    </tr>`).join("") + `<tr class="remainder"><td>אחרות / שאר הרשימות</td><td data-out="rem"></td><td class="num" data-out="remv"></td><td>—</td><td></td><td></td><td></td><td></td><td></td></tr>`;
+  S.parties.forEach(p => {
+    const num = el("sim-pct-" + p.id), rng = el("sim-rng-" + p.id);
+    num.addEventListener("input", () => { p.pct = Math.max(0, +num.value || 0); rng.value = Math.min(40, p.pct); updateSim(); });
+    rng.addEventListener("input", () => { p.pct = +rng.value; num.value = p.pct; updateSim(); });
+    el("sim-name-" + p.id).addEventListener("change", ev => { p.name = ev.target.value.trim() || "ללא שם"; renderSimTable(); updateSim(); });
+    el("sim-bloc-" + p.id).addEventListener("change", ev => { p.bloc = ev.target.value; updateSim(); });
+    el("sim-partner-" + p.id).addEventListener("change", ev => {
+      const v = ev.target.value || null;
+      if (p.partner) { const old = S.parties.find(o => o.id === p.partner); if (old) old.partner = null; }
+      if (v) { const np = S.parties.find(o => o.id === v); if (np.partner) { const o2 = S.parties.find(o => o.id === np.partner); if (o2) o2.partner = null; } np.partner = p.id; }
+      p.partner = v; renderSimTable(); updateSim();
+    });
+    el("sim-coal-" + p.id).addEventListener("change", ev => {
+      const s = new Set(S.coal); ev.target.checked ? s.add(p.id) : s.delete(p.id); S.coal = [...s]; updateSim();
+    });
+  });
+  el("sim-body").querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => {
+    const id = b.dataset.del;
+    S.parties.forEach(o => { if (o.partner === id) o.partner = null; });
+    S.parties = S.parties.filter(o => o.id !== id); S.coal = S.coal.filter(c => c !== id);
+    renderSimTable(); updateSim();
+  }));
+}
+function updateSim() {
+  const S = state.sim; const r = simCompute(); const base = baseSeats();
+  S.parties.forEach(p => {
+    const row = el("sim-body").querySelector(`tr[data-id="${p.id}"]`); if (!row) return;
+    const seats = r.seats[p.id] || 0; const pass = r.passed.has(p.id);
+    row.classList.toggle("below", !pass);
+    row.querySelector('[data-out="votes"]').textContent = fmt((+p.pct || 0) / 100 * S.total);
+    row.querySelector('[data-out="seats"]').innerHTML = pass ? `<span class="seats">${seats}</span>` : `<span class="pill out">מתחת לחסימה</span>`;
+    let d = "—";
+    if (base) {
+      if (base[p.name] === undefined) d = `<span class="pill in">חדשה</span>`;
+      else { const diff = seats - base[p.name]; d = diff === 0 ? "0" : `<span class="delta ${diff > 0 ? "up" : "down"}">${diff > 0 ? "+" : ""}${diff}</span>`; }
+    }
+    row.querySelector('[data-out="delta"]').innerHTML = d;
+  });
+  const rem = Math.max(0, 100 - r.sum);
+  const remCell = el("sim-body").querySelector('[data-out="rem"]'); if (remCell) remCell.textContent = fmtPct(rem);
+  const remV = el("sim-body").querySelector('[data-out="remv"]'); if (remV) remV.textContent = fmt(rem / 100 * S.total);
+  const wastedPct = S.parties.filter(p => !r.passed.has(p.id)).reduce((s, p) => s + (+p.pct || 0), 0) + rem;
+  const msg = el("sim-msg");
+  if (r.sum > 100.0001) { msg.className = "note warn"; msg.textContent = `סכום האחוזים הוא ${fmtPct(r.sum)}, יותר מ-100%. החישוב מתייחס לאחוזים כיחסיים; לחצו "נרמל ל-100%" כדי לתקן.`; }
+  else { msg.className = "note"; msg.textContent = `סכום האחוזים ${fmtPct(r.sum)} · ${fmtPct(rem)} לרשימות אחרות · ${fmtPct(wastedPct)} מהקולות נשרפים · אחוז החסימה = ${fmt(r.thr)} קולות`; }
+  const items = S.parties.map(p => ({ id: p.id, name: p.name, seats: r.seats[p.id] || 0, bloc: p.bloc, color: p.color }));
+  const coal = new Set(S.coal);
+  el("sim-colorby").value = state.colorSim;
+  hemicycle(el("sim-hemi"), items, state.colorSim, coal);
+  legend(el("sim-legend"), items, state.colorSim);
+  blocBars(el("sim-blocs"), items, b => { S.coal = items.filter(p => p.bloc === b && p.seats > 0).map(p => p.id); renderSimTable(); updateSim(); });
+  coalBox(el("sim-coal"), items, coal, () => { S.coal = []; renderSimTable(); updateSim(); });
+  save();
+}
+
+// ---------- BLOC NAMES ----------
+function renderBlocNames() {
+  el("blocnames").innerHTML = BLOCS.map(b => `<div class="field"><label for="bn-${b}"><span class="bloc-dot" style="background:${blocColor(b)}"></span>גוש ${b === "N" ? "4 (ללא שיוך)" : BLOCS.indexOf(b) + 1}</label><input id="bn-${b}" value="${esc(state.blocNames[b])}"></div>`).join("")
+    + `<div class="field" style="justify-content:flex-end"><button class="btn small" id="bn-reset">שחזר שמות ושיוך ברירת מחדל</button></div>`;
+  BLOCS.forEach(b => el("bn-" + b).addEventListener("change", ev => { state.blocNames[b] = ev.target.value.trim() || DEFAULT_BLOC_NAMES[b]; save(); renderResults(); renderSimTable(); updateSim(); }));
+  el("bn-reset").addEventListener("click", () => { state.blocNames = { ...DEFAULT_BLOC_NAMES }; state.realBloc = {}; save(); renderBlocNames(); renderResults(); renderSimTable(); updateSim(); });
+}
+
+// ---------- WIRING ----------
+function showTab(t) {
+  const isSim = t === "sim";
+  el("view-results").hidden = isSim; el("view-sim").hidden = !isSim;
+  el("tab-results").setAttribute("aria-selected", String(!isSim)); el("tab-sim").setAttribute("aria-selected", String(isSim));
+}
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => { location.hash = b.dataset.tab; showTab(b.dataset.tab); }));
+window.addEventListener("hashchange", () => showTab(location.hash === "#sim" ? "sim" : "results"));
+el("res-nosurplus").addEventListener("change", renderResults);
+el("res-colorby").addEventListener("change", ev => { state.colorRes = ev.target.value; save(); renderResultsSide(); });
+el("sim-colorby").addEventListener("change", ev => { state.colorSim = ev.target.value; updateSim(); });
+el("res-to-sim").addEventListener("click", () => { state.sim = simFromElection(state.electionId); renderSimControls(); renderSimTable(); updateSim(); location.hash = "sim"; showTab("sim"); });
+el("sim-load").addEventListener("click", () => { const v = el("sim-base").value; state.sim = v === "blank" ? simBlank() : simFromElection(v); renderSimControls(); renderSimTable(); updateSim(); });
+el("sim-total").addEventListener("input", ev => { const v = +ev.target.value; if (v > 0) { state.sim.total = v; updateSim(); } });
+el("sim-thr").addEventListener("input", ev => { state.sim.threshold = Math.max(0, +ev.target.value || 0); updateSim(); });
+el("sim-add").addEventListener("click", () => {
+  const S = state.sim; const used = new Set(S.parties.map(p => p.color));
+  const color = PALETTE.find(c => !used.has(c)) || PALETTE[S.parties.length % PALETTE.length];
+  S.parties.push({ id: "p" + (uid++), name: "מפלגה חדשה", pct: 4, bloc: "N", partner: null, color });
+  renderSimTable(); updateSim();
+  const last = S.parties[S.parties.length - 1]; const inp = el("sim-name-" + last.id); if (inp) { inp.focus(); inp.select(); }
+});
+el("sim-norm").addEventListener("click", () => {
+  const S = state.sim; const sum = S.parties.reduce((s, p) => s + (+p.pct || 0), 0); if (!sum) return;
+  S.parties.forEach(p => p.pct = Math.round(p.pct / sum * 10000) / 100); renderSimTable(); updateSim();
+});
+el("sim-shake").addEventListener("click", () => {
+  const S = state.sim;
+  S.parties.forEach(p => p.pct = Math.max(0, Math.round(p.pct * (1 + (Math.random() * 0.3 - 0.15)) * 100) / 100));
+  const sum = S.parties.reduce((s, p) => s + p.pct, 0); if (sum > 100) S.parties.forEach(p => p.pct = Math.round(p.pct / sum * 10000) / 100);
+  renderSimTable(); updateSim();
+});
+
+renderBlocNames(); renderChips(); renderResults();
+renderSimControls(); renderSimTable(); updateSim();
+showTab(location.hash === "#sim" ? "sim" : "results");
+</script>
+</body>
+</html>
