@@ -63,7 +63,8 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: clamp(28px, 
 h2 { font-family: var(--font-display); font-weight: 700; font-size: 21px; margin: 0; text-wrap: balance; }
 h3 { font-size: 13px; font-weight: 600; letter-spacing: .04em; color: var(--muted); margin: 0; }
 .tabs { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px; gap: 4px; }
-.tabs button { border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 600; padding: 8px 18px; border-radius: 999px; cursor: pointer; }
+.tabs { max-width: 100%; overflow-x: auto; }
+.tabs button { flex: none; border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 600; padding: 8px 18px; border-radius: 999px; cursor: pointer; }
 .tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
 button, select, input { font: inherit; color: inherit; }
 button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -153,7 +154,35 @@ footer a { color: var(--accent); }
 .mcell { display: flex; align-items: center; gap: 6px; }
 .mcell .ms { font-size: 12.5px; font-weight: 700; min-width: 2ch; font-variant-numeric: tabular-nums; }
 .mcell .ms.zero { color: var(--muted); font-weight: 400; }
-@media (prefers-reduced-motion: reduce) { .bar .fill { transition: none; } }
+.board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
+@media (max-width: 960px) { .board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .board { grid-template-columns: minmax(0, 1fr); } }
+.bcol { background: var(--surface-2); border: 1px solid var(--line); border-top: 4px solid var(--c); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 10px; min-height: 180px; min-width: 0; transition: background .15s; }
+.bcol.over { background: var(--accent-soft); outline: 2px dashed var(--c); outline-offset: -2px; }
+.bhead { display: flex; flex-direction: column; gap: 6px; }
+.bhead .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.bname { font-weight: 700; font-size: 14px; min-width: 0; overflow-wrap: anywhere; }
+.btot { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; color: var(--c); white-space: nowrap; }
+.bsub { font-size: 12px; color: var(--muted); }
+.bsub .verdict { font-size: 12px; }
+.bseries { display: flex; flex-wrap: wrap; gap: 4px; font-size: 11.5px; }
+.bseries span { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-variant-numeric: tabular-nums; }
+.bseries b.maj { color: var(--good); }
+.bcards { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.bempty { font-size: 12.5px; color: var(--muted); text-align: center; padding: 18px 6px; border: 1px dashed var(--line); border-radius: 8px; }
+.pcard { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 5px; cursor: grab; user-select: none; }
+.pcard:active { cursor: grabbing; }
+.pcard.dragging { opacity: .4; }
+.pcard.below { opacity: .72; }
+.pc-top { display: flex; align-items: center; gap: 7px; }
+.pc-name { font-weight: 600; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.pc-seats { font-weight: 700; font-variant-numeric: tabular-nums; }
+.pc-meta { font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.pc-move { display: flex; gap: 6px; align-items: center; font-size: 11.5px; color: var(--muted); }
+.mv { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0; }
+.mv:hover { transform: scale(1.12); box-shadow: 0 0 0 2px var(--ink); }
+.pill.mix { background: var(--accent-soft); color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { .bar .fill { transition: none; } .mv:hover { transform: none; } }
 </style>
 </head>
 <body>
@@ -167,13 +196,14 @@ footer a { color: var(--accent); }
       <button id="tab-results" role="tab" aria-selected="true" data-tab="results">תוצאות אמת</button>
       <button id="tab-sim" role="tab" aria-selected="false" data-tab="sim">סימולציה</button>
       <button id="tab-trend" role="tab" aria-selected="false" data-tab="trend">התפתחות הגושים</button>
+      <button id="tab-assign" role="tab" aria-selected="false" data-tab="assign">שיוך לגושים</button>
     </nav>
   </header>
 
   <details id="blocs-panel">
     <summary>שמות הגושים</summary>
     <div class="inner">
-      <p class="note">שיוך ברירת המחדל לגושים לפי המקובל בתקשורת בכל מערכת בחירות. אפשר לשנות את השיוך של כל מפלגה בטבלה או לכל השנים בלשונית "התפתחות הגושים", ואת שמות הגושים כאן.</p>
+      <p class="note">שיוך ברירת המחדל לגושים לפי המקובל בתקשורת בכל מערכת בחירות. אפשר לשנות את השיוך של כל מפלגה בטבלה או בלשונית "שיוך לגושים", ואת שמות הגושים כאן.</p>
       <div class="blocnames" id="blocnames"></div>
     </div>
   </details>
@@ -276,21 +306,46 @@ footer a { color: var(--accent); }
       </div>
       <div class="legend" id="trend-legend" aria-label="הצג או הסתר גוש"></div>
       <div class="trendwrap" id="trend-chart"></div>
-      <p class="note" id="trend-note"></p>
+      <div class="row-between">
+        <p class="note" id="trend-note"></p>
+        <button class="btn small" data-goto="assign">שנה את שיוך המפלגות ←</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- BLOC ASSIGNMENT -->
+  <section id="view-assign" class="stack" role="tabpanel" aria-labelledby="tab-assign" hidden>
+    <div class="panel">
+      <div class="row-between">
+        <h2>שיוך מפלגות לגושים</h2>
+        <div style="display:flex;gap:8px 14px;flex-wrap:wrap;align-items:center">
+          <label class="toggle"><input type="checkbox" id="trend-all"> הצג גם רשימות שלא עברו את החסימה</label>
+          <button class="btn small" id="assign-reset">אפס שיוך</button>
+        </div>
+      </div>
+      <div class="chips" id="assign-chips" aria-label="מערכת בחירות לשיוך"></div>
+      <p class="note" id="assign-note"></p>
+      <div class="board" id="board"></div>
     </div>
     <div class="panel">
       <div class="row-between">
-        <h2>סימון גושים</h2>
-        <label class="toggle"><input type="checkbox" id="trend-all"> הצג גם רשימות שלא עברו את החסימה</label>
+        <h2>מנדטים לפי גוש לאורך השנים</h2>
+        <button class="btn small" data-goto="trend">לגרף המלא ←</button>
       </div>
-      <p class="note">בחרו לכל מפלגה גוש בכל מערכת בחירות, או בעמודה "כל השנים" לכל המערכות בבת אחת. הגרף, טבלת התוצאות והמליאה מתעדכנים מיד. המספר ליד כל תא הוא מספר המנדטים.</p>
-      <div class="tablewrap">
-        <table class="matrix">
-          <thead id="matrix-head"></thead>
-          <tbody id="matrix-body"></tbody>
-        </table>
-      </div>
+      <div class="trendwrap" id="assign-chart"></div>
     </div>
+    <details>
+      <summary>טבלת כל השנים</summary>
+      <div class="inner">
+        <p class="note">בחרו לכל מפלגה גוש בכל מערכת בחירות, או בעמודה "כל השנים" לכל המערכות בבת אחת. המספר ליד כל תא הוא מספר המנדטים.</p>
+        <div class="tablewrap">
+          <table class="matrix">
+            <thead id="matrix-head"></thead>
+            <tbody id="matrix-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </details>
   </section>
 
   <details class="method">
@@ -385,6 +440,7 @@ const state = {
   trendMode: saved.trendMode || "seats",
   trendHidden: saved.trendHidden || [],
   trendAll: saved.trendAll || false,
+  assignEid: saved.assignEid || "all",
   sim: saved.sim || null
 };
 const fmt = n => Math.round(n).toLocaleString("he-IL");
@@ -504,7 +560,7 @@ function renderResults() {
     </tr>`).join("") + (others > 0 ? `<tr class="below"><td>אחרות (רשימות קטנות)</td><td class="num">${fmt(others)}</td><td class="num">${fmtPct(others / e.valid * 100)}</td><td>—</td><td ${showNs ? "" : "hidden"}></td><td></td><td></td><td></td></tr>` : "");
   resParties.forEach((p, i) => {
     el("res-bloc-" + i).addEventListener("change", ev => {
-      (state.realBloc[e.id] = state.realBloc[e.id] || {})[p.name] = ev.target.value; p.bloc = ev.target.value; save(); renderResultsSide(); renderTrend();
+      (state.realBloc[e.id] = state.realBloc[e.id] || {})[p.name] = ev.target.value; p.bloc = ev.target.value; save(); renderResultsSide(); renderTrend(); renderAssign();
     });
     const cb = el("res-coal-" + i);
     if (cb) cb.addEventListener("change", ev => {
@@ -645,7 +701,21 @@ function blocTotals(e) {
 }
 function setRealBloc(e, name, b) { (state.realBloc[e.id] = state.realBloc[e.id] || {})[name] = b; }
 function renderTrend() {
-  const mode = state.trendMode, isSeats = mode === "seats", isVotes = mode === "votes";
+  const mode = state.trendMode;
+  el("trend-mode").querySelectorAll("button").forEach(btn => btn.setAttribute("aria-pressed", String(btn.dataset.mode === mode)));
+  el("trend-legend").innerHTML = BLOCS.map(b => `<button class="lg-btn" data-bloc="${b}" aria-pressed="${!state.trendHidden.includes(b)}"><i class="sw" style="background:${blocColor(b)}"></i>${esc(state.blocNames[b])}</button>`).join("");
+  el("trend-legend").querySelectorAll("button").forEach(btn => btn.addEventListener("click", () => {
+    const b = btn.dataset.bloc, h = new Set(state.trendHidden); h.has(b) ? h.delete(b) : h.add(b); state.trendHidden = [...h]; save(); renderTrend(); renderAssign();
+  }));
+  el("trend-chart").innerHTML = trendChart(mode);
+  el("trend-note").textContent = mode === "seats"
+    ? "מנדטים בפועל לפי תוצאות האמת, מסוכמים לפי שיוך המפלגות לגושים בכל מערכת בחירות."
+    : mode === "votes"
+    ? "מספר הקולות הכשרים שקיבלו מפלגות הגוש (M = מיליון), כולל רשימות שלא עברו את החסימה. רחפו מעל נקודה לראות את המספר המדויק. קולות של רשימות קטנות שמאוחדות ב\"אחרות\" לא משויכים לאף גוש."
+    : "אחוז מהקולות הכשרים, כולל רשימות שלא עברו את החסימה. קולות של רשימות קטנות שמאוחדות ב\"אחרות\" לא משויכים לאף גוש.";
+}
+function trendChart(mode) {
+  const isSeats = mode === "seats", isVotes = mode === "votes";
   const data = CHRONO.map(blocTotals);
   const shown = BLOCS.filter(b => !state.trendHidden.includes(b));
   const val = (t, b) => isSeats ? t[b].seats : isVotes ? t[b].votes : t[b].pct;
@@ -653,12 +723,6 @@ function renderTrend() {
   const tip = v => isVotes ? fmt(v) + " קולות" : lbl(v);
   const tick = v => isSeats ? String(v) : isVotes ? (v / 1e6) + "M" : v + "%";
   const step = isVotes ? 500000 : 10;
-  el("trend-mode").querySelectorAll("button").forEach(btn => btn.setAttribute("aria-pressed", String(btn.dataset.mode === mode)));
-  el("trend-legend").innerHTML = BLOCS.map(b => `<button class="lg-btn" data-bloc="${b}" aria-pressed="${!state.trendHidden.includes(b)}"><i class="sw" style="background:${blocColor(b)}"></i>${esc(state.blocNames[b])}</button>`).join("");
-  el("trend-legend").querySelectorAll("button").forEach(btn => btn.addEventListener("click", () => {
-    const b = btn.dataset.bloc, h = new Set(state.trendHidden); h.has(b) ? h.delete(b) : h.add(b); state.trendHidden = [...h]; save(); renderTrend();
-  }));
-
   // chart: x = elections in chronological order (left → right), y = seats or % of valid votes
   const W = 760, H = 330, L = 46, R = 14, T = 24, B = 50, P = 34, n = CHRONO.length;
   const maxV = Math.max(1, ...data.flatMap(t => shown.map(b => val(t, b))));
@@ -693,12 +757,80 @@ function renderTrend() {
     });
   });
   s += `</svg>`;
-  el("trend-chart").innerHTML = s;
-  el("trend-note").textContent = isSeats
-    ? "מנדטים בפועל לפי תוצאות האמת, מסוכמים לפי שיוך המפלגות לגושים בכל מערכת בחירות."
-    : isVotes
-    ? "מספר הקולות הכשרים שקיבלו מפלגות הגוש (M = מיליון), כולל רשימות שלא עברו את החסימה. רחפו מעל נקודה לראות את המספר המדויק. קולות של רשימות קטנות שמאוחדות ב\"אחרות\" לא משויכים לאף גוש."
-    : "אחוז מהקולות הכשרים, כולל רשימות שלא עברו את החסימה. קולות של רשימות קטנות שמאוחדות ב\"אחרות\" לא משויכים לאף גוש.";
+  return s;
+}
+// ---------- BLOC ASSIGNMENT BOARD ----------
+function refreshBlocs() { renderResults(); renderTrend(); renderAssign(); }
+const shortLabel = e => e.id === "2019a" ? "4/2019" : e.id === "2019b" ? "9/2019" : e.id;
+function assignCards(eid) {
+  if (eid !== "all") {
+    const e = ELECTIONS.find(x => x.id === eid);
+    return electionParties(e).filter(p => state.trendAll || p.official > 0).map(p => ({
+      name: p.name, bloc: p.bloc, color: p.color, seats: p.official, rank: p.votes, below: !p.official,
+      meta: fmtPct(p.votes / e.valid * 100) + (p.official ? "" : " · מתחת לחסימה")
+    }));
+  }
+  const per = CHRONO.map(e => Object.fromEntries(electionParties(e).map(p => [p.name, p])));
+  const names = [...new Set(CHRONO.flatMap(e => e.parties.map(([n]) => n)))];
+  return names.map(name => {
+    const runs = per.map((m, i) => m[name] ? { p: m[name], e: CHRONO[i] } : null).filter(Boolean);
+    const last = runs[runs.length - 1], total = runs.reduce((s, r) => s + r.p.official, 0);
+    return {
+      name, bloc: last.p.bloc, color: runs[0].p.color, seats: last.p.official, rank: total, below: !total,
+      mixed: new Set(runs.map(r => r.p.bloc)).size > 1,
+      meta: runs.map(r => `<span dir="ltr"><i class="bloc-dot" style="background:${blocColor(r.p.bloc)}" title="${esc(state.blocNames[r.p.bloc])}"></i>${shortLabel(r.e)}: ${r.p.official}</span>`).join("")
+    };
+  }).filter(c => state.trendAll || c.rank > 0);
+}
+function moveParty(eid, name, b) {
+  if (eid === "all") CHRONO.forEach(e => { if (e.parties.some(([n]) => n === name)) setRealBloc(e, name, b); });
+  else setRealBloc(ELECTIONS.find(x => x.id === eid), name, b);
+  save(); refreshBlocs();
+}
+function renderAssign() {
+  const eid = state.assignEid, isAll = eid === "all", e = isAll ? null : ELECTIONS.find(x => x.id === eid);
+  el("assign-chips").innerHTML = `<button class="chip-btn" data-eid="all" aria-pressed="${isAll}">כל השנים</button>`
+    + ELECTIONS.map(x => `<button class="chip-btn" data-eid="${x.id}" aria-pressed="${x.id === eid}">${esc(x.label)}</button>`).join("");
+  el("assign-chips").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { state.assignEid = b.dataset.eid; save(); renderAssign(); }));
+  el("assign-note").textContent = "גררו כרטיס של מפלגה לגוש אחר, או לחצו על עיגול הצבע שבכרטיס. " + (isAll
+    ? "במצב \"כל השנים\" ההעברה חלה על כל מערכות הבחירות שבהן המפלגה רצה. ליד כל שנה מופיע מספר המנדטים, והעיגול מראה את הגוש באותה שנה."
+    : "השינוי חל רק על " + e.long + ".");
+  const cards = assignCards(eid);
+  const totals = isAll ? CHRONO.map(blocTotals) : [blocTotals(e)];
+  const latest = totals[totals.length - 1];
+  el("board").innerHTML = BLOCS.map(b => {
+    const mine = cards.map((c, i) => ({ c, i })).filter(x => x.c.bloc === b).sort((x, y) => y.c.rank - x.c.rank);
+    const v = latest[b].seats;
+    const head = isAll
+      ? `<div class="bsub">ב-${esc(CHRONO[CHRONO.length - 1].label)}</div>
+         <div class="bseries">${CHRONO.map((x, i) => `<span dir="ltr">${shortLabel(x)}: <b class="${totals[i][b].seats >= 61 ? "maj" : ""}">${totals[i][b].seats}</b></span>`).join("")}</div>`
+      : `<div class="bsub">${fmtPct(latest[b].pct)} מהקולות · <span class="verdict ${v >= 61 ? "ok" : "no"}">${v >= 61 ? "רוב" : "חסרים " + (61 - v) + " לרוב"}</span></div>
+         <div class="bar"><div class="fill" style="width:${v / 120 * 100}%;background:var(--c)"></div><div class="mark" style="right:${61 / 120 * 100}%" title="61"></div></div>`;
+    return `<div class="bcol" data-bloc="${b}" style="--c:${blocColor(b)}">
+      <div class="bhead"><div class="top"><div class="bname">${esc(state.blocNames[b])}</div><div class="btot">${v}</div></div>${head}</div>
+      <div class="bcards">${mine.length ? mine.map(({ c, i }) => `
+        <div class="pcard${c.below ? " below" : ""}" draggable="true" data-i="${i}">
+          <div class="pc-top"><i class="sw" style="background:${c.color}"></i><span class="pc-name">${esc(c.name)}</span><span class="pc-seats">${c.seats}</span></div>
+          <div class="pc-meta">${c.mixed ? `<span class="pill mix">משתנה</span>` : ""}${c.meta}</div>
+          <div class="pc-move">העבר ל:${BLOCS.filter(o => o !== b).map(o => `<button class="mv" data-i="${i}" data-to="${o}" style="background:${blocColor(o)}" title="${esc(state.blocNames[o])}" aria-label="העבר את ${esc(c.name)} ל${esc(state.blocNames[o])}"></button>`).join("")}</div>
+        </div>`).join("") : `<div class="bempty">גררו לכאן מפלגה</div>`}</div>
+    </div>`;
+  }).join("");
+  el("board").querySelectorAll(".pcard").forEach(card => {
+    card.addEventListener("dragstart", ev => { ev.dataTransfer.setData("text/plain", card.dataset.i); ev.dataTransfer.effectAllowed = "move"; card.classList.add("dragging"); });
+    card.addEventListener("dragend", () => card.classList.remove("dragging"));
+  });
+  el("board").querySelectorAll(".bcol").forEach(col => {
+    col.addEventListener("dragover", ev => { ev.preventDefault(); ev.dataTransfer.dropEffect = "move"; col.classList.add("over"); });
+    col.addEventListener("dragleave", ev => { if (!col.contains(ev.relatedTarget)) col.classList.remove("over"); });
+    col.addEventListener("drop", ev => {
+      ev.preventDefault(); col.classList.remove("over");
+      const c = cards[+ev.dataTransfer.getData("text/plain")];
+      if (c && c.bloc !== col.dataset.bloc) moveParty(eid, c.name, col.dataset.bloc);
+    });
+  });
+  el("board").querySelectorAll(".mv").forEach(btn => btn.addEventListener("click", () => moveParty(eid, cards[+btn.dataset.i].name, btn.dataset.to)));
+  el("assign-chart").innerHTML = trendChart("seats");
   renderMatrix();
 }
 function renderMatrix() {
@@ -721,7 +853,7 @@ function renderMatrix() {
     const name = rows[+sel.dataset.r], b = sel.value; if (!b) return;
     if (sel.dataset.all) CHRONO.forEach((e, i) => { if (per[i][name]) setRealBloc(e, name, b); });
     else setRealBloc(CHRONO[+sel.dataset.e], name, b);
-    save(); renderResults(); renderTrend();
+    save(); refreshBlocs();
   }));
 }
 
@@ -729,12 +861,12 @@ function renderMatrix() {
 function renderBlocNames() {
   el("blocnames").innerHTML = BLOCS.map(b => `<div class="field"><label for="bn-${b}"><span class="bloc-dot" style="background:${blocColor(b)}"></span>גוש ${b === "N" ? "4 (ללא שיוך)" : BLOCS.indexOf(b) + 1}</label><input id="bn-${b}" value="${esc(state.blocNames[b])}"></div>`).join("")
     + `<div class="field" style="justify-content:flex-end"><button class="btn small" id="bn-reset">שחזר שמות ושיוך ברירת מחדל</button></div>`;
-  BLOCS.forEach(b => el("bn-" + b).addEventListener("change", ev => { state.blocNames[b] = ev.target.value.trim() || DEFAULT_BLOC_NAMES[b]; save(); renderResults(); renderSimTable(); updateSim(); renderTrend(); }));
-  el("bn-reset").addEventListener("click", () => { state.blocNames = { ...DEFAULT_BLOC_NAMES }; state.realBloc = {}; save(); renderBlocNames(); renderResults(); renderSimTable(); updateSim(); renderTrend(); });
+  BLOCS.forEach(b => el("bn-" + b).addEventListener("change", ev => { state.blocNames[b] = ev.target.value.trim() || DEFAULT_BLOC_NAMES[b]; save(); renderSimTable(); updateSim(); refreshBlocs(); }));
+  el("bn-reset").addEventListener("click", () => { state.blocNames = { ...DEFAULT_BLOC_NAMES }; state.realBloc = {}; save(); renderBlocNames(); renderSimTable(); updateSim(); refreshBlocs(); });
 }
 
 // ---------- WIRING ----------
-const TABS = ["results", "sim", "trend"];
+const TABS = ["results", "sim", "trend", "assign"];
 function showTab(t) {
   if (!TABS.includes(t)) t = "results";
   TABS.forEach(x => { el("view-" + x).hidden = x !== t; el("tab-" + x).setAttribute("aria-selected", String(x === t)); });
@@ -742,7 +874,12 @@ function showTab(t) {
 document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => { location.hash = b.dataset.tab; showTab(b.dataset.tab); }));
 window.addEventListener("hashchange", () => showTab(location.hash.slice(1)));
 el("trend-mode").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { state.trendMode = b.dataset.mode; save(); renderTrend(); }));
-el("trend-all").addEventListener("change", ev => { state.trendAll = ev.target.checked; save(); renderMatrix(); });
+el("trend-all").addEventListener("change", ev => { state.trendAll = ev.target.checked; save(); renderAssign(); });
+document.querySelectorAll("[data-goto]").forEach(b => b.addEventListener("click", () => { location.hash = b.dataset.goto; showTab(b.dataset.goto); window.scrollTo(0, 0); }));
+el("assign-reset").addEventListener("click", () => {
+  if (state.assignEid === "all") state.realBloc = {}; else delete state.realBloc[state.assignEid];
+  save(); refreshBlocs();
+});
 el("res-nosurplus").addEventListener("change", renderResults);
 el("res-colorby").addEventListener("change", ev => { state.colorRes = ev.target.value; save(); renderResultsSide(); });
 el("sim-colorby").addEventListener("change", ev => { state.colorSim = ev.target.value; updateSim(); });
@@ -769,7 +906,7 @@ el("sim-shake").addEventListener("click", () => {
 });
 
 renderBlocNames(); renderChips(); renderResults();
-renderSimControls(); renderSimTable(); updateSim(); renderTrend();
+renderSimControls(); renderSimTable(); updateSim(); renderTrend(); renderAssign();
 showTab(location.hash.slice(1));
 </script>
 </body>
